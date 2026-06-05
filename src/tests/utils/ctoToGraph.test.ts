@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseCto, validateCto, declarationsToGraph } from "../../utils/graph/ctoToGraph";
+import { parseCto, validateCto, declarationsToGraph, estimateNodeHeight, getDeclarationDisplayLabel } from "../../utils/graph/ctoToGraph";
 
 const SIMPLE_CTO = `namespace org.test@1.0.0
 
@@ -211,6 +211,64 @@ concept Child extends Base {
       (e) => e.source === "Child" && e.target === "Base" && e.label === "extends"
     );
     expect(extendsEdge).toBeDefined();
+  });
+
+  it("uses @Term as the graph label for supported declaration nodes", () => {
+    const termCto = `namespace org.test@1.0.0
+
+@Term("Agreement")
+concept ContractData {
+  o String id
+}
+
+@Term("Lifecycle State")
+enum ContractState {
+  o DRAFT
+}
+`;
+    const { declarations } = parseCto(termCto);
+    const { nodes } = declarationsToGraph(declarations);
+
+    const conceptNode = nodes.find((node) => node.id === "ContractData");
+    const enumNode = nodes.find((node) => node.id === "ContractState");
+
+    expect(conceptNode?.data.label).toBe("Agreement");
+    expect((conceptNode?.data.declaration as { name: string }).name).toBe("ContractData");
+    expect(enumNode?.data.label).toBe("Lifecycle State");
+    expect((enumNode?.data.declaration as { name: string }).name).toBe("ContractState");
+  });
+
+  it("falls back to the declaration name when @Term is empty or unsupported", () => {
+    const termCto = `namespace org.test@1.0.0
+
+@Term("")
+asset EmptyTerm identified {
+  o String id
+}
+
+@Term("Lifecycle Event")
+event LifecycleEvent {
+  o String id
+}
+`;
+    const { declarations } = parseCto(termCto);
+
+    expect(getDeclarationDisplayLabel(declarations.find((decl) => decl.name === "EmptyTerm")!)).toBe("EmptyTerm");
+    expect(getDeclarationDisplayLabel(declarations.find((decl) => decl.name === "LifecycleEvent")!)).toBe("LifecycleEvent");
+  });
+
+  it("reserves header height when @Term adds a technical-name subtitle", () => {
+    const plain = parseCto(`namespace org.test@1.0.0
+concept ContractData {
+  o String id
+}`).declarations[0];
+    const labelled = parseCto(`namespace org.test@1.0.0
+@Term("Agreement")
+concept ContractData {
+  o String id
+}`).declarations[0];
+
+    expect(estimateNodeHeight(labelled)).toBeGreaterThan(estimateNodeHeight(plain));
   });
 
   it("uses distinct handles for duplicate edges that share the same source and target", () => {

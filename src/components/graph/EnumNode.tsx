@@ -11,6 +11,8 @@ interface EnumNodeData {
 
 export function EnumNode({ data, selected }: { data: EnumNodeData; selected?: boolean }) {
   const { declaration } = data;
+  const displayLabel = data.label || declaration.name;
+  const showTechnicalName = displayLabel !== declaration.name;
 
   return (
     <div style={{
@@ -42,9 +44,14 @@ export function EnumNode({ data, selected }: { data: EnumNodeData; selected?: bo
             &times;
           </button>
         </div>
-        <div style={{ fontSize: 15, fontWeight: 700, marginTop: 4, color: '#fefcbf' }}>
-          {declaration.name}
+        <div style={{ fontSize: 15, fontWeight: 700, marginTop: 4, color: '#fefcbf', lineHeight: 1.2 }}>
+          {displayLabel}
         </div>
+        {showTechnicalName && (
+          <div style={{ fontSize: 10, color: '#ffffff99', marginTop: 2, fontFamily: "'JetBrains Mono', monospace" }}>
+            {declaration.name}
+          </div>
+        )}
       </div>
 
       <div style={{ padding: '6px 6px 8px' }}>

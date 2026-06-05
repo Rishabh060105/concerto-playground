@@ -33,6 +33,8 @@ export function ConceptNode({ data, selected }: { data: ConceptNodeData; selecte
   const { declaration } = data;
   const colors = DECL_COLORS[declaration.type] || DECL_COLORS.concept;
   const edgeProperties = new Set(data.edgeProperties ?? []);
+  const displayLabel = data.label || declaration.name;
+  const showTechnicalName = displayLabel !== declaration.name;
 
   return (
     <div style={{
@@ -101,9 +103,14 @@ export function ConceptNode({ data, selected }: { data: ConceptNodeData; selecte
             ))}
           </div>
         )}
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 4 }}>
-          {declaration.name}
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 4, lineHeight: 1.2 }}>
+          {displayLabel}
         </div>
+        {showTechnicalName && (
+          <div style={{ fontSize: 10, color: '#ffffff99', marginTop: 2, fontFamily: "'JetBrains Mono', monospace" }}>
+            {declaration.name}
+          </div>
+        )}
         {declaration.identified === 'identified-by' && declaration.identifiedBy && (
           <div style={{ fontSize: 10, color: '#68d391', marginTop: 2 }}>
             identified by {declaration.identifiedBy}

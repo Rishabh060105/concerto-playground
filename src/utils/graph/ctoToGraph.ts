@@ -5,6 +5,13 @@ import { PRIMITIVE_TYPES } from './types';
 import { Parser as ParserModule } from '@accordproject/concerto-cto';
 import { ModelManager } from '@accordproject/concerto-core';
 const META = 'concerto.metamodel@1.0.0';
+const TERM_LABEL_DECLARATION_TYPES = new Set<Declaration['type']>([
+  'concept',
+  'enum',
+  'asset',
+  'participant',
+  'transaction',
+]);
 
 export function parseCto(cto: string): ConcertoModel {
   const ast = ParserModule.parse(cto) as any;
@@ -195,13 +202,39 @@ function extractMapType(mapEntry: any): string {
   return $class.replace(`${META}.`, '').replace(/Map(Key|Value)Type$/, '');
 }
 
-function estimateNodeHeight(decl: Declaration): number {
+export function getDeclarationDisplayLabel(decl: Declaration): string {
+  if (!TERM_LABEL_DECLARATION_TYPES.has(decl.type)) return decl.name;
+
+  const term = decl.decorators.find((decorator) => decorator.name === 'Term');
+  const label = term?.args[0] ? unquoteDecoratorArgument(term.args[0]).trim() : '';
+
+  return label || decl.name;
+}
+
+function hasDisplaySubtitle(decl: Declaration): boolean {
+  return getDeclarationDisplayLabel(decl) !== decl.name;
+}
+
+function unquoteDecoratorArgument(value: string): string {
+  const trimmed = value.trim();
+  const first = trimmed[0];
+  const last = trimmed[trimmed.length - 1];
+
+  if ((first === '"' || first === "'") && last === first) {
+    return trimmed.slice(1, -1);
+  }
+
+  return trimmed;
+}
+
+export function estimateNodeHeight(decl: Declaration): number {
   let headerHeight = 70;
   const rowHeight = 30;
   const buttonHeight = 36;
   const padding = 16;
 
   if (decl.decorators?.length > 0) headerHeight += 20;
+  if (hasDisplaySubtitle(decl)) headerHeight += 14;
   if (decl.identified !== 'none') headerHeight += 16;
   if (decl.superType) headerHeight += 16;
 
@@ -324,7 +357,7 @@ export function declarationsToGraph(declarations: Declaration[]): { nodes: Node[
       id: decl.name,
       type: nodeType,
       position: pos,
-      data: { label: decl.name, declaration: decl, edgeProperties },
+      data: { label: getDeclarationDisplayLabel(decl), declaration: decl, edgeProperties },
     });
 
     if (decl.superType && declNames.has(decl.superType)) {
