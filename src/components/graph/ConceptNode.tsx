@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Declaration } from '../../utils/graph/types';
+import { getVisibleGraphDecorators } from '../../utils/graph/ctoToGraph';
 
 const TYPE_COLORS: Record<string, string> = {
   String: '#68d391',
@@ -35,6 +37,10 @@ export function ConceptNode({ data, selected }: { data: ConceptNodeData; selecte
   const edgeProperties = new Set(data.edgeProperties ?? []);
   const displayLabel = data.label || declaration.name;
   const showTechnicalName = displayLabel !== declaration.name;
+  const visibleDecorators = getVisibleGraphDecorators(declaration);
+  const collapseDecorators = visibleDecorators.length > 1;
+  const [showDecorators, setShowDecorators] = useState(false);
+  const renderDecoratorChips = visibleDecorators.length === 1 || showDecorators;
 
   return (
     <div style={{
@@ -91,13 +97,22 @@ export function ConceptNode({ data, selected }: { data: ConceptNodeData; selecte
             &times;
           </button>
         </div>
-        {declaration.decorators?.length > 0 && (
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 2 }}>
-            {declaration.decorators.map((d) => (
-              <span key={d.name} style={{
-                fontSize: 8, color: '#fbb6ce', background: '#ed64a622', padding: '1px 5px',
-                borderRadius: 4, fontFamily: 'monospace',
-              }}>
+        {visibleDecorators.length > 0 && (
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center', marginTop: 2 }}>
+            {collapseDecorators && (
+              <button
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setShowDecorators((current) => !current);
+                }}
+                style={decoratorToggleStyle}
+                title={showDecorators ? 'Hide decorators' : 'Show decorators'}
+              >
+                decorators {visibleDecorators.length}
+              </button>
+            )}
+            {renderDecoratorChips && visibleDecorators.map((d) => (
+              <span key={`${d.name}:${d.args.join(',')}`} style={decoratorChipStyle}>
                 @{d.name}{d.args.length > 0 ? `(${d.args.join(', ')})` : ''}
               </span>
             ))}
@@ -199,4 +214,20 @@ const rowHandleStyle: React.CSSProperties = {
   right: -6,
   top: '50%',
   transform: 'translateY(-50%)',
+};
+
+const decoratorChipStyle: React.CSSProperties = {
+  fontSize: 8,
+  color: '#fbb6ce',
+  background: '#ed64a622',
+  padding: '1px 5px',
+  borderRadius: 4,
+  fontFamily: 'monospace',
+};
+
+const decoratorToggleStyle: React.CSSProperties = {
+  ...decoratorChipStyle,
+  border: '1px solid #fbb6ce55',
+  cursor: 'pointer',
+  lineHeight: 1.35,
 };

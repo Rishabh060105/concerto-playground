@@ -203,16 +203,39 @@ function extractMapType(mapEntry: any): string {
 }
 
 export function getDeclarationDisplayLabel(decl: Declaration): string {
-  if (!TERM_LABEL_DECLARATION_TYPES.has(decl.type)) return decl.name;
-
-  const term = decl.decorators.find((decorator) => decorator.name === 'Term');
+  const term = getDisplayTermDecorator(decl);
   const label = term?.args[0] ? unquoteDecoratorArgument(term.args[0]).trim() : '';
 
   return label || decl.name;
 }
 
+export function getVisibleGraphDecorators(decl: Declaration): Decorator[] {
+  const displayTermIndex = getDisplayTermDecoratorIndex(decl);
+
+  if (displayTermIndex < 0) {
+    return decl.decorators;
+  }
+
+  return decl.decorators.filter((_, index) => index !== displayTermIndex);
+}
+
 function hasDisplaySubtitle(decl: Declaration): boolean {
   return getDeclarationDisplayLabel(decl) !== decl.name;
+}
+
+function getDisplayTermDecorator(decl: Declaration): Decorator | undefined {
+  const index = getDisplayTermDecoratorIndex(decl);
+  return index >= 0 ? decl.decorators[index] : undefined;
+}
+
+function getDisplayTermDecoratorIndex(decl: Declaration): number {
+  if (!TERM_LABEL_DECLARATION_TYPES.has(decl.type)) return -1;
+
+  return decl.decorators.findIndex((decorator) =>
+    decorator.name === 'Term' &&
+    !!decorator.args[0] &&
+    !!unquoteDecoratorArgument(decorator.args[0]).trim()
+  );
 }
 
 function unquoteDecoratorArgument(value: string): string {
@@ -233,7 +256,7 @@ export function estimateNodeHeight(decl: Declaration): number {
   const buttonHeight = 36;
   const padding = 16;
 
-  if (decl.decorators?.length > 0) headerHeight += 20;
+  if (getVisibleGraphDecorators(decl).length > 0) headerHeight += 20;
   if (hasDisplaySubtitle(decl)) headerHeight += 14;
   if (decl.identified !== 'none') headerHeight += 16;
   if (decl.superType) headerHeight += 16;

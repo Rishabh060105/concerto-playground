@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseCto, validateCto, declarationsToGraph, estimateNodeHeight, getDeclarationDisplayLabel } from "../../utils/graph/ctoToGraph";
+import { parseCto, validateCto, declarationsToGraph, estimateNodeHeight, getDeclarationDisplayLabel, getVisibleGraphDecorators } from "../../utils/graph/ctoToGraph";
 
 const SIMPLE_CTO = `namespace org.test@1.0.0
 
@@ -269,6 +269,40 @@ concept ContractData {
 }`).declarations[0];
 
     expect(estimateNodeHeight(labelled)).toBeGreaterThan(estimateNodeHeight(plain));
+  });
+
+  it("excludes the consumed @Term decorator from visible graph decorators", () => {
+    const model = parseCto(`namespace org.test@1.0.0
+
+@Term("Reviewed At")
+@Term_fieldType("Date")
+@category(GeneralCategory)
+concept C_ReviewedAt extends Provision {
+  o String id
+}
+concept Provision {
+  o String id
+}`);
+    const reviewedAt = model.declarations.find((decl) => decl.name === "C_ReviewedAt")!;
+    const visibleDecorators = getVisibleGraphDecorators(reviewedAt);
+
+    expect(getDeclarationDisplayLabel(reviewedAt)).toBe("Reviewed At");
+    expect(visibleDecorators.map((decorator) => decorator.name)).toEqual(["Term_fieldType", "category"]);
+  });
+
+  it("keeps decorators visible when @Term does not drive the graph label", () => {
+    const model = parseCto(`namespace org.test@1.0.0
+
+@Term("")
+@category(GeneralCategory)
+concept EmptyTerm {
+  o String id
+}`);
+    const emptyTerm = model.declarations.find((decl) => decl.name === "EmptyTerm")!;
+    const visibleDecorators = getVisibleGraphDecorators(emptyTerm);
+
+    expect(getDeclarationDisplayLabel(emptyTerm)).toBe("EmptyTerm");
+    expect(visibleDecorators.map((decorator) => decorator.name)).toEqual(["Term", "category"]);
   });
 
   it("uses distinct handles for duplicate edges that share the same source and target", () => {
