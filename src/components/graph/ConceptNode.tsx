@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { Declaration } from '../../utils/graph/types';
 import { getVisibleGraphDecorators } from '../../utils/graph/ctoToGraph';
@@ -39,8 +38,6 @@ export function ConceptNode({ data, selected }: { data: ConceptNodeData; selecte
   const showTechnicalName = displayLabel !== declaration.name;
   const visibleDecorators = getVisibleGraphDecorators(declaration);
   const collapseDecorators = visibleDecorators.length > 1;
-  const [showDecorators, setShowDecorators] = useState(false);
-  const renderDecoratorChips = visibleDecorators.length === 1 || showDecorators;
 
   return (
     <div style={{
@@ -98,25 +95,27 @@ export function ConceptNode({ data, selected }: { data: ConceptNodeData; selecte
           </button>
         </div>
         {visibleDecorators.length > 0 && (
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center', marginTop: 2 }}>
-            {collapseDecorators && (
-              <button
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setShowDecorators((current) => !current);
-                }}
-                style={decoratorToggleStyle}
-                title={showDecorators ? 'Hide decorators' : 'Show decorators'}
-              >
-                decorators {visibleDecorators.length}
-              </button>
-            )}
-            {renderDecoratorChips && visibleDecorators.map((d) => (
-              <span key={`${d.name}:${d.args.join(',')}`} style={decoratorChipStyle}>
-                @{d.name}{d.args.length > 0 ? `(${d.args.join(', ')})` : ''}
+          collapseDecorators ? (
+            <details style={{ marginTop: 2 }} onClick={(event) => event.stopPropagation()}>
+              <summary style={decoratorToggleStyle}>
+                {visibleDecorators.length} decorators
+              </summary>
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                {visibleDecorators.map((d) => (
+                  <span key={`${d.name}:${d.args.join(',')}`} style={decoratorChipStyle}>
+                    @{d.name}{d.args.length > 0 ? `(${d.args.join(', ')})` : ''}
+                  </span>
+                ))}
+              </div>
+            </details>
+          ) : (
+            <div style={{ display: 'flex', marginTop: 2 }}>
+              <span style={decoratorChipStyle}>
+                @{visibleDecorators[0].name}
+                {visibleDecorators[0].args.length > 0 ? `(${visibleDecorators[0].args.join(', ')})` : ''}
               </span>
-            ))}
-          </div>
+            </div>
+          )
         )}
         <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 4, lineHeight: 1.2 }}>
           {displayLabel}
@@ -226,8 +225,13 @@ const decoratorChipStyle: React.CSSProperties = {
 };
 
 const decoratorToggleStyle: React.CSSProperties = {
-  ...decoratorChipStyle,
-  border: '1px solid #fbb6ce55',
+  width: 'fit-content',
+  background: '#2d3748',
+  color: '#e2e8f0',
+  border: '1px solid #4a5568',
+  borderRadius: 6,
+  padding: '2px 8px',
   cursor: 'pointer',
-  lineHeight: 1.35,
+  fontSize: 9,
+  fontWeight: 600,
 };
